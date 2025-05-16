@@ -127,6 +127,6 @@ This Tax Return Tracker features automatic position calculation in two ways:
 - **Search returns no results**: Make sure the client is searching with information that exactly matches what's in your spreadsheet
 - **Authentication errors**: Ensure you've properly set up the Google Cloud OAuth consent screen
 
-##Need Help?
+## Need Help?
 
 If you encounter any issues, please contact your developer for assistance.
