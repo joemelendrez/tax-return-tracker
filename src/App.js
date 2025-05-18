@@ -77,7 +77,6 @@ function App() {
       let daysAdded = 0;
       while (daysAdded < daysNeeded) {
         result.setDate(result.getDate() + 1);
-
         // Check if this is a working day (1-7, where 1 is Monday)
         const dayOfWeek = result.getDay() === 0 ? 7 : result.getDay();
         if (WORKING_DAYS.includes(dayOfWeek)) {
@@ -140,7 +139,6 @@ function App() {
   // Load data from Netlify Function
   const fetchData = useCallback(async () => {
     setIsLoading(true);
-
     try {
       // Call your Netlify function instead of Google Sheets directly
       const response = await fetch('/.netlify/functions/get-tax-data');
@@ -169,9 +167,9 @@ function App() {
           })
           .filter((item) => item.id && item.name);
 
-
         // Sort the data by status and position
         const calculatedPositions = calculatePositions(formattedData);
+
         const withEstimatedDates = calculatedPositions.map((client) => {
           const calculatedDate = calculateEstimatedCompletionDate(
             client.calculatedPosition
@@ -203,6 +201,7 @@ function App() {
       console.log('Using mock data:', err.message);
       // Use your existing mock data logic
       const calculatedPositions = calculatePositions(mockData);
+
       const withEstimatedDates = calculatedPositions.map((client) => {
         if (client.status === 'Completed') {
           return client;
@@ -361,7 +360,6 @@ function App() {
       })
       .catch((err) => {
         console.error('Error during search:', err);
-
         // If there's an error refreshing, still try to search with existing data
         const searchLower = searchTerm.toLowerCase().trim();
         const isEmailSearch = searchTerm.includes('@');
@@ -434,124 +432,116 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      <h1 className="app-title">Tax Return Status Tracker</h1>
+    <div className="container">
+      <div className="header">
+        <h1>Tax Return Status Tracker</h1>
+      </div>
 
-      <div className="search-container">
-        <label className="search-label">Look up your return status</label>
+      <div className="search-section">
+        <h2>Look up your return status</h2>
         <input
           type="text"
-          className="search-input"
-          placeholder="Enter your full name (First Last) or email address"
+          placeholder="Enter your full name or email"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyPress={handleKeyPress}
         />
-        <p className="search-example">
+        <p className="hint">
           Example: "John Smith" or "john@example.com"
         </p>
-
-        <button
-          onClick={handleSearch}
-          className="search-button"
-          disabled={isLoading}
-        >
+        <button onClick={handleSearch} disabled={isLoading}>
           {isLoading ? 'Searching...' : 'Check Status'}
         </button>
       </div>
 
       {error && (
         <div className="error-container">
-          <p>{error}</p>
+          <div className="error">{error}</div>
         </div>
       )}
 
       {statusMessage && (
         <div className="result-container">
-          <div className="result-header">
-            <span className="result-emoji">
-              {getStatusEmoji(statusMessage.status)}
-            </span>
-            <h2 className="result-name">{statusMessage.name}</h2>
-          </div>
-
-          <div>
-            <div className="result-section">
-              <p className="result-label">Status</p>
-              <p className="result-value">{statusMessage.status}</p>
+          <div className="status-card">
+            <div className="status-header">
+              <span className="status-emoji">
+                {getStatusEmoji(statusMessage.status)}
+              </span>
+              <h3>{statusMessage.name}</h3>
             </div>
 
-            {statusMessage.status !== 'Completed' && (
-              <div className="result-section">
-                <p className="result-label">Position in Queue</p>
-                <p className="result-value">
-                  {getPositionDisplay(statusMessage)}
-                </p>
+            <div className="status-details">
+              <div className="detail-item">
+                <span className="detail-label">Status</span>
+                <span className="detail-value">{statusMessage.status}</span>
               </div>
-            )}
 
-            {/* Only show completion date for certain statuses */}
-            {statusMessage.status !== 'In Queue' && (
-              <div className="result-section">
-                <p className="result-label">
-                  {statusMessage.status === 'Awaiting Documents'
-                    ? 'Timeline'
-                    : 'Estimated Completion'}
-                </p>
-                <p
-                  className={`result-value ${
-                    statusMessage.status === 'Awaiting Documents'
-                      ? 'awaiting-docs'
-                      : ''
-                  }`}
-                >
-                  {/* Special handling for Awaiting Documents status */}
-                  {statusMessage.status === 'Awaiting Documents'
-                    ? statusMessage.estimatedCompletion ||
-                      'Pending document receipt'
-                    : statusMessage.estimatedCompletion ||
-                      statusMessage.calculatedEstimatedCompletion}
-                </p>
-                {statusMessage.status === 'Awaiting Documents' && (
-                  <p className="result-note">
-                    Your return will be processed within 5 business days after
-                    we receive your documents.
-                  </p>
-                )}
-              </div>
-            )}
+              {statusMessage.status !== 'Completed' && (
+                <div className="detail-item">
+                  <span className="detail-label">Position in Queue</span>
+                  <span className="detail-value">
+                    {getPositionDisplay(statusMessage)}
+                  </span>
+                </div>
+              )}
 
-            <div className="progress-container">
-              <p className="result-label">Progress</p>
-              <div className="progress-bar-container">
-                <div
-                  className="progress-bar"
-                  style={{
-                    width: `${getProgressPercentage(
-                      statusMessage.status,
-                      statusMessage.position,
-                      statusMessage.calculatedPosition
-                    )}%`,
-                  }}
-                ></div>
-              </div>
-              <div className="progress-labels">
-                <span>Received</span>
-                <span>In Progress</span>
-                <span>Completed</span>
+              {/* Only show completion date for non-completed statuses */}
+              {statusMessage.status !== 'Completed' && (
+                <div className="detail-item">
+                  <span className="detail-label">
+                    {statusMessage.status === 'Awaiting Documents'
+                      ? 'Timeline'
+                      : 'Estimated Completion'}
+                  </span>
+                  <span className="detail-value">
+                    {/* Special handling for Awaiting Documents status */}
+                    {statusMessage.status === 'Awaiting Documents'
+                      ? statusMessage.estimatedCompletion ||
+                        'Pending document receipt'
+                      : statusMessage.estimatedCompletion ||
+                        statusMessage.calculatedEstimatedCompletion}
+                  </span>
+                  {statusMessage.status === 'Awaiting Documents' && (
+                    <p className="detail-note">
+                      Your return will be processed within 5 business days after
+                      we receive your documents.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="detail-item">
+                <span className="detail-label">Progress</span>
+                <div className="progress-container">
+                  <div
+                    className="progress-bar"
+                    style={{
+                      width: `${getProgressPercentage(
+                        statusMessage.status,
+                        statusMessage.position,
+                        statusMessage.calculatedPosition
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <div className="progress-labels">
+                  <span>Received</span>
+                  <span>In Progress</span>
+                  <span>Completed</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="footer-container">
+      <div className="info-section">
         <p>Use this tracker to check your tax return status.</p>
         {lastUpdated && (
           <p className="last-updated">Last updated: {lastUpdated}</p>
         )}
         {isUsingMockData && (
-          <p className="demo-mode">Demo Mode - Using Sample Data</p>
+          <p className="demo-notice">Demo Mode - Using Sample Data</p>
         )}
       </div>
     </div>
