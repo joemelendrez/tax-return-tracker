@@ -2,7 +2,7 @@
 
 A React-based web application that allows clients to check the status of their tax returns using Google Sheets as a data source. Built with serverless functions for secure API key management.
 
-![Tax Return Status Tracker Screenshot](https://placeholder.com/tax-tracker-screenshot.png)
+![Tax Return Status Tracker Screenshot](/public/Example.jpg)![Tax Return Google Sheet](/public/sheet.png)
 
 ## Overview
 
