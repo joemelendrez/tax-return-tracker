@@ -93,48 +93,103 @@ function App() {
     [DAILY_COMPLETION_RATE, WORKING_DAYS]
   );
 
-  // Calculate positions based on status
+  // Fixed calculatePositions function
   const calculatePositions = useCallback((clients) => {
     // Define status priority (lower number = higher priority)
     const statusPriority = {
-      'In Progress': 1, // Highest priority - actively being worked on
-      Review: 2, // Second priority - ready for final review
-      'Awaiting Documents': 3, // Third priority - waiting for client info
-      'In Queue': 4, // Fourth priority - not yet started
-      Completed: 5, // Lowest priority - already done
+      'In Progress': 1,
+      Review: 2,
+      'Awaiting Documents': 3,
+      'In Queue': 4,
+      Completed: 5,
     };
 
-    // Sort by status priority and then by original position
-    const sortedClients = [...clients].sort((a, b) => {
+    // Separate clients with manual positions from those without
+    const clientsWithManualPos = [];
+    const clientsWithoutManualPos = [];
+
+    clients.forEach((client, originalIndex) => {
+      if (
+        client.position !== null &&
+        client.position !== undefined &&
+        !isNaN(client.position)
+      ) {
+        clientsWithManualPos.push({ ...client, originalIndex });
+      } else {
+        clientsWithoutManualPos.push({ ...client, originalIndex });
+      }
+    });
+
+    // Sort clients WITHOUT manual positions by status priority, then sheet order
+    const sortedWithoutManual = clientsWithoutManualPos.sort((a, b) => {
       const statusA = a.status || 'In Queue';
       const statusB = b.status || 'In Queue';
       const priorityA = statusPriority[statusA] || 999;
       const priorityB = statusPriority[statusB] || 999;
 
       if (priorityA === priorityB) {
-        // If positions are null/undefined, use a large number for sorting
-        const posA =
-          a.position !== null && a.position !== undefined
-            ? a.position
-            : Number.MAX_SAFE_INTEGER;
-        const posB =
-          b.position !== null && b.position !== undefined
-            ? b.position
-            : Number.MAX_SAFE_INTEGER;
-        return posA - posB;
+        // Same status - maintain original sheet order
+        return a.originalIndex - b.originalIndex;
       }
       return priorityA - priorityB;
     });
 
-    // Assign calculated positions
-    let position = 1;
-    return sortedClients.map((client) => {
+    // Sort clients WITH manual positions by their manual position value
+    const sortedWithManual = clientsWithManualPos.sort((a, b) => {
+      return a.position - b.position;
+    });
+
+    // Assign calculated positions to clients without manual positions
+    let autoPosition = 1;
+    const withCalculatedPositions = sortedWithoutManual.map((client) => {
       if (client.status === 'Completed') {
         return { ...client, calculatedPosition: 0 };
       } else {
-        return { ...client, calculatedPosition: position++ };
+        return { ...client, calculatedPosition: autoPosition++ };
       }
     });
+
+    // For clients with manual positions, use their manual position as calculated position
+    const withManualPositions = sortedWithManual.map((client) => {
+      if (client.status === 'Completed') {
+        return { ...client, calculatedPosition: 0 };
+      } else {
+        return { ...client, calculatedPosition: client.position };
+      }
+    });
+
+    // Combine both arrays - clients with manual positions keep their positions,
+    // clients without get auto-calculated positions
+    const allClients = [...withCalculatedPositions, ...withManualPositions];
+
+    // Final sort by calculated position for display purposes
+    const finalSorted = allClients.sort((a, b) => {
+      const statusA = a.status || 'In Queue';
+      const statusB = b.status || 'In Queue';
+      const priorityA = statusPriority[statusA] || 999;
+      const priorityB = statusPriority[statusB] || 999;
+
+      // First by status priority
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      // Then by calculated position within same status
+      return a.calculatedPosition - b.calculatedPosition;
+    });
+
+    console.log('🔍 Final position assignments:');
+    finalSorted.forEach((client) => {
+      const positionSource =
+        client.position !== null && client.position !== undefined
+          ? 'manual'
+          : 'auto';
+      console.log(
+        `${client.calculatedPosition}. ${client.name} - Status: "${client.status}" (${positionSource})`
+      );
+    });
+
+    return finalSorted;
   }, []);
 
   // Load data from Netlify Function
@@ -493,35 +548,36 @@ function App() {
             )}
 
             {/* Only show completion date for certain statuses - exclude In Queue AND Completed */}
-            {statusMessage.status !== 'In Queue' && statusMessage.status !== 'Completed' && (
-              <div className="result-section">
-                <p className="result-label">
-                  {statusMessage.status === 'Awaiting Documents'
-                    ? 'Timeline'
-                    : 'Estimated Completion'}
-                </p>
-                <p
-                  className={`result-value ${
-                    statusMessage.status === 'Awaiting Documents'
-                      ? 'awaiting-docs'
-                      : ''
-                  }`}
-                >
-                  {/* Special handling for Awaiting Documents status */}
-                  {statusMessage.status === 'Awaiting Documents'
-                    ? statusMessage.estimatedCompletion ||
-                      'Pending document receipt'
-                    : statusMessage.estimatedCompletion ||
-                      statusMessage.calculatedEstimatedCompletion}
-                </p>
-                {statusMessage.status === 'Awaiting Documents' && (
-                  <p className="result-note">
-                    Your return will be processed within 5 business days after
-                    we receive your documents.
+            {statusMessage.status !== 'In Queue' &&
+              statusMessage.status !== 'Completed' && (
+                <div className="result-section">
+                  <p className="result-label">
+                    {statusMessage.status === 'Awaiting Documents'
+                      ? 'Timeline'
+                      : 'Estimated Completion'}
                   </p>
-                )}
-              </div>
-            )}
+                  <p
+                    className={`result-value ${
+                      statusMessage.status === 'Awaiting Documents'
+                        ? 'awaiting-docs'
+                        : ''
+                    }`}
+                  >
+                    {/* Special handling for Awaiting Documents status */}
+                    {statusMessage.status === 'Awaiting Documents'
+                      ? statusMessage.estimatedCompletion ||
+                        'Pending document receipt'
+                      : statusMessage.estimatedCompletion ||
+                        statusMessage.calculatedEstimatedCompletion}
+                  </p>
+                  {statusMessage.status === 'Awaiting Documents' && (
+                    <p className="result-note">
+                      Your return will be processed within 5 business days after
+                      we receive your documents.
+                    </p>
+                  )}
+                </div>
+              )}
 
             <div className="progress-container">
               <p className="result-label">Progress</p>
