@@ -36,7 +36,7 @@ function App() {
       {
         id: '002',
         name: 'John Smith',
-        email: 'john.smith@example.com',
+        email: 'john@example.com',
         status: 'In Queue',
         position: null,
         estimatedCompletion: '6/5/2025',
