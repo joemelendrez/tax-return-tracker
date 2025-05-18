@@ -72,7 +72,7 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Content-Type': 'application/json',
         // Cache the response for
-        'Cache-Control': 'max-age=3600', // Cache for 1 hour
+        'Cache-Control': 'max-age=30', // Cache for 1 hour
       },
       body: JSON.stringify(data),
     };
