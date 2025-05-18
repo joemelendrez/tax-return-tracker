@@ -10,12 +10,6 @@ function App() {
   const [lastUpdated, setLastUpdated] = useState('');
   const [isUsingMockData, setIsUsingMockData] = useState(true);
 
-  // Google Sheets configuration
-  const API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your actual API key
-  const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE'; // Replace with your actual spreadsheet ID
-  const SHEET_NAME = 'Sheet1'; // Your sheet name
-  const RANGE = 'A2:F1000'; // Range to fetch (A2:F1000 gets all data except headers)
-
   // Completion rate settings
   const DAILY_COMPLETION_RATE = 5; // Number of returns you can complete per day
 
@@ -27,40 +21,40 @@ function App() {
     () => [
       {
         id: '001',
-        name: 'Jane Doe',
-        email: 'jane.doe@example.com',
+        name: 'John Smith',
+        email: 'john.smith@example.com',
         status: 'In Progress',
         position: null,
         estimatedCompletion: '5/20/2025',
       },
       {
         id: '002',
-        name: 'John Smith',
-        email: 'john@example.com',
+        name: 'Sarah Johnson',
+        email: 'sarah.j@example.com',
         status: 'In Queue',
         position: null,
         estimatedCompletion: '6/5/2025',
       },
       {
         id: '003',
-        name: 'Alex Johnson',
-        email: 'alex.johnson@example.com',
+        name: 'Michael Davis',
+        email: 'mdavis@example.com',
         status: 'Review',
         position: null,
         estimatedCompletion: '5/18/2025',
       },
       {
         id: '004',
-        name: 'Sam Williams',
-        email: 'sam.williams@example.com',
+        name: 'Jennifer Williams',
+        email: 'jwilliams@example.com',
         status: 'Awaiting Documents',
         position: null,
         estimatedCompletion: '5/25/2025',
       },
       {
         id: '005',
-        name: 'Taylor Garcia',
-        email: 'taylor.garcia@example.com',
+        name: 'Robert Garcia',
+        email: 'robert.g@example.com',
         status: 'Completed',
         position: 0,
         estimatedCompletion: '5/12/2025',
@@ -143,106 +137,76 @@ function App() {
     });
   }, []);
 
-  // Load data from Google Sheets
+  // Load data from Netlify Function
   const fetchData = useCallback(async () => {
     setIsLoading(true);
 
     try {
-      // Try to load data from Google Sheets
-      if (
-        API_KEY !== 'YOUR_API_KEY_HERE' &&
-        SPREADSHEET_ID !== 'YOUR_SPREADSHEET_ID_HERE'
-      ) {
-        console.log(
-          `Attempting to fetch from: https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!${RANGE}?key=${API_KEY}`
-        );
+      // Call your Netlify function instead of Google Sheets directly
+      const response = await fetch('/.netlify/functions/get-tax-data');
 
-        const response = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!${RANGE}?key=${API_KEY}`
-        );
+      if (!response.ok) {
+        throw new Error('Failed to fetch data from API');
+      }
 
-        console.log('Response status:', response.status);
+      const result = await response.json();
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error details:', errorText);
-          throw new Error('Failed to fetch data from Google Sheets');
-        }
+      // Transform the data from rows to objects (same logic as before)
+      if (result.values && result.values.length > 0) {
+        const formattedData = result.values
+          .map((row) => {
+            const parsedPosition =
+              row[4] && row[4].trim() !== '' ? parseInt(row[4], 10) : null;
 
-        const result = await response.json();
+            return {
+              id: row[0] || '',
+              name: row[1] || '',
+              email: row[2] || '',
+              status: row[3] || '',
+              position: !isNaN(parsedPosition) ? parsedPosition : null,
+              estimatedCompletion: row[5] || '',
+            };
+          })
+          .filter((item) => item.id && item.name);
 
-        // Transform the data from rows to objects
-        if (result.values && result.values.length > 0) {
-          const formattedData = result.values
-            .map((row) => {
-              // Set position to null for cleaner handling
-              const parsedPosition =
-                row[4] && row[4].trim() !== '' ? parseInt(row[4], 10) : null;
 
-              return {
-                id: row[0] || '',
-                name: row[1] || '',
-                email: row[2] || '',
-                status: row[3] || '',
-                position: !isNaN(parsedPosition) ? parsedPosition : null,
-                estimatedCompletion: row[5] || '',
-              };
-            })
-            .filter((item) => item.id && item.name); // Filter out any empty rows
+        // Sort the data by status and position
+        const calculatedPositions = calculatePositions(formattedData);
+        const withEstimatedDates = calculatedPositions.map((client) => {
+          const calculatedDate = calculateEstimatedCompletionDate(
+            client.calculatedPosition
+          );
 
-          console.log('Parsed client data:', formattedData);
+          if (client.status === 'Completed' || client.estimatedCompletion) {
+            return {
+              ...client,
+              calculatedEstimatedCompletion: calculatedDate,
+            };
+          } else {
+            return {
+              ...client,
+              calculatedEstimatedCompletion: calculatedDate,
+            };
+          }
+        });
 
-          // Calculate positions based on status
-          const calculatedPositions = calculatePositions(formattedData);
-
-          console.log('After position calculation:', calculatedPositions);
-
-          // Calculate estimated completion dates
-          const withEstimatedDates = calculatedPositions.map((client) => {
-            // Always calculate the estimated completion date
-            const calculatedDate = calculateEstimatedCompletionDate(
-              client.calculatedPosition
-            );
-
-            // For completed returns or returns with existing dates in the sheet, prioritize those dates
-            if (client.status === 'Completed' || client.estimatedCompletion) {
-              return {
-                ...client,
-                calculatedEstimatedCompletion: calculatedDate,
-                // We'll keep both values and choose which to display in the UI
-              };
-            } else {
-              // Only add calculated date for items that don't already have a date
-              return {
-                ...client,
-                calculatedEstimatedCompletion: calculatedDate,
-              };
-            }
-          });
-
-          setReturnData(withEstimatedDates);
-
-          const now = new Date();
-          setLastUpdated(now.toLocaleString());
-          setIsUsingMockData(false);
-          console.log('Successfully loaded data from Google Sheets');
-          return;
-        }
+        setReturnData(withEstimatedDates);
+        const now = new Date();
+        setLastUpdated(now.toLocaleString());
+        setIsUsingMockData(false);
+        return;
       }
 
       // Fallback to mock data
       throw new Error('Using mock data');
     } catch (err) {
       console.log('Using mock data:', err.message);
-      // Use mock data instead
+      // Use your existing mock data logic
       const calculatedPositions = calculatePositions(mockData);
-
-      // Calculate estimated completion dates for mock data too
       const withEstimatedDates = calculatedPositions.map((client) => {
         if (client.status === 'Completed') {
-          return client; // Keep existing completion date for completed returns
+          return client;
         } else {
-          // Calculate new estimated completion date
           return {
             ...client,
             calculatedEstimatedCompletion: calculateEstimatedCompletionDate(
@@ -253,22 +217,13 @@ function App() {
       });
 
       setReturnData(withEstimatedDates);
-
       const now = new Date();
       setLastUpdated(now.toLocaleString() + ' (DEMO DATA)');
       setIsUsingMockData(true);
     } finally {
       setIsLoading(false);
     }
-  }, [
-    API_KEY,
-    SPREADSHEET_ID,
-    SHEET_NAME,
-    RANGE,
-    calculatePositions,
-    calculateEstimatedCompletionDate,
-    mockData,
-  ]);
+  }, [calculatePositions, calculateEstimatedCompletionDate, mockData]);
 
   // Initial data load and local storage retrieval
   useEffect(() => {
@@ -322,6 +277,7 @@ function App() {
       const elementHeight = rect.height;
 
       // Calculate position to scroll to - element's top position plus half of its height
+      // This will scroll to a point halfway through the results container
       const halfwayPoint = rect.top + scrollTop + elementHeight / 2;
 
       // Calculate the viewport height
@@ -364,12 +320,13 @@ function App() {
         return;
       }
     }
+
     // Save search term to local storage
     localStorage.setItem('taxTrackerSearchTerm', searchTerm);
 
     setIsLoading(true);
 
-    // First refresh data from Google Sheets
+    // First refresh data from API
     fetchData()
       .then(() => {
         // After data is refreshed, search using the latest data
