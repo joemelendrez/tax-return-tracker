@@ -20,7 +20,7 @@ This application provides a simple, user-friendly interface for clients to check
 
 ## Demo
 
-[Live Demo](https://your-demo-url.netlify.app) - Try searching with "John Smith" or "john@example.com"
+[Live Demo](https://trackexample.netlify.app) - Try searching with "John Smith" or "john@example.com"
 
 ## Setup Guide
 
