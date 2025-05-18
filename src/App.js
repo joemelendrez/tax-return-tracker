@@ -214,13 +214,13 @@ function App() {
               row[4] && row[4].trim() !== '' ? parseInt(row[4], 10) : null;
 
             return {
-              id: row[0] || '',
-              name: row[1] || '',
-              email: row[2] || '',
-              status: row[3] || '',
-              position: !isNaN(parsedPosition) ? parsedPosition : null,
-              estimatedCompletion: row[5] || '',
-            };
+  id: row[0] ? row[0].toString().trim() : '',
+  name: row[1] ? row[1].toString().trim() : '', // TRIM THE NAME
+  email: row[2] ? row[2].toString().trim() : '', // TRIM THE EMAIL
+  status: row[3] ? row[3].toString().trim() : '',
+  position: !isNaN(parsedPosition) ? parsedPosition : null,
+  estimatedCompletion: row[5] ? row[5].toString().trim() : '',
+};
           })
           .filter((item) => item.id && item.name);
 
