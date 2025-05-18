@@ -81,7 +81,7 @@ id  | name         | email              | status             | position | estima
 
 1. **Fork or clone this repository**
    ```bash
-   git clone https://github.com/yourusername/tax-return-tracker.git
+   git clone https://github.com/joemelendrez/tax-return-tracker.git
    cd tax-return-tracker
    ```
 
