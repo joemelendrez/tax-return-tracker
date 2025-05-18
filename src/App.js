@@ -169,9 +169,9 @@ function App() {
           })
           .filter((item) => item.id && item.name);
 
-
         // Sort the data by status and position
         const calculatedPositions = calculatePositions(formattedData);
+
         const withEstimatedDates = calculatedPositions.map((client) => {
           const calculatedDate = calculateEstimatedCompletionDate(
             client.calculatedPosition
@@ -191,6 +191,7 @@ function App() {
         });
 
         setReturnData(withEstimatedDates);
+
         const now = new Date();
         setLastUpdated(now.toLocaleString());
         setIsUsingMockData(false);
@@ -203,6 +204,7 @@ function App() {
       console.log('Using mock data:', err.message);
       // Use your existing mock data logic
       const calculatedPositions = calculatePositions(mockData);
+
       const withEstimatedDates = calculatedPositions.map((client) => {
         if (client.status === 'Completed') {
           return client;
@@ -217,6 +219,7 @@ function App() {
       });
 
       setReturnData(withEstimatedDates);
+
       const now = new Date();
       setLastUpdated(now.toLocaleString() + ' (DEMO DATA)');
       setIsUsingMockData(true);
@@ -320,7 +323,6 @@ function App() {
         return;
       }
     }
-
     // Save search term to local storage
     localStorage.setItem('taxTrackerSearchTerm', searchTerm);
 
@@ -490,8 +492,8 @@ function App() {
               </div>
             )}
 
-            {/* Only show completion date for certain statuses */}
-            {statusMessage.status !== 'In Queue' && (
+            {/* Only show completion date for certain statuses - exclude In Queue AND Completed */}
+            {statusMessage.status !== 'In Queue' && statusMessage.status !== 'Completed' && (
               <div className="result-section">
                 <p className="result-label">
                   {statusMessage.status === 'Awaiting Documents'
