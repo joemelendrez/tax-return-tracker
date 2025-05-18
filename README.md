@@ -4,7 +4,7 @@ A React-based web application that allows clients to check the status of their t
 
 ![Tax Return Status Tracker Screenshot](/public/Example.jpg)
 
-![Tax Return Google Sheet](/public/sheet.png)
+![Tax Return Google Sheet](/public/Sheet.png)
 
 ## Overview
 
